@@ -2,12 +2,13 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Random;
 
 public abstract class Neurone implements iNeurone
 {
 	// Coefficient de mise à jour des poids,
 	// commun (static) à tous les neurones
-	private static float eta = 0.0001f;
+	private static float eta = 0.001f;
 	// Accesseur en écriture seule, permettant de modifier
 	// eta pour tous les neurones pendant l'exécution
 	public static void fixeCoefApprentissage(final float nouvelEta) {eta = nouvelEta;}
@@ -43,7 +44,6 @@ public abstract class Neurone implements iNeurone
 	}
 
 	// Accesseur pour la valeur de sortie
-        @Override
 	public float sortie() {return etatInterne;}
 	
 	// Donne accès en lecture-écriture aux valeurs des poids synaptiques
@@ -55,7 +55,6 @@ public abstract class Neurone implements iNeurone
 	
 	// Calcule la valeur de sortie en fonction des entrées, des poids synaptiques,
 	// du biais et de la fonction d'activation
-        @Override
 	public void metAJour(final float[] entrees)
 	{
 		// On démarre en extrayant le biais
@@ -69,20 +68,25 @@ public abstract class Neurone implements iNeurone
 		etatInterne = activation(somme);
 	}
 	
+
+	public static final int MAX_ITERATIONS = 1000; //pour éviter une boucle infinie de tentative d'amélioration du neurone
+
 	// Fonction d'apprentissage relative à la mse
-        @Override
 	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite)
 	{
 		double mse = 0.;
 		int iter = 0;
+    	final Random rng = new Random(); //aléatoire afin de ne pas faire les meme itérations et les meme types à la suite
+
 		do
 		{
 			mse = 0.;
 			for (int i = 0; i < entrees.length; ++i)
 			{
-				final float[] entree = entrees[i];
+				final int idx = rng.nextInt(entrees.length); //index aléatoire
+				final float[] entree = entrees[idx]; //i a été remplacé par idk, pour itéré aléatoirement
 				metAJour(entree);
-				final float delta = resultats[i]-sortie();
+				final float delta = resultats[idx]-sortie(); //i a été remplacé par idk, pour itéré aléatoirement
 				mse += delta * delta;
 				for (int j = 0; j < entree.length; ++j)
 					synapses()[j] += entree[j]*eta*delta;
@@ -92,10 +96,9 @@ public abstract class Neurone implements iNeurone
 			System.out.printf("Itération %d, mse:  %.6f\n", iter, mse);
 			iter += 1;
 		}
-		while (mse > MSElimite);
+		while (mse > MSElimite && iter < MAX_ITERATIONS);
 	}
 
-        @Override
 	public void sauvegarde(String chemin) // optionel
 	{
 		try
@@ -116,7 +119,6 @@ public abstract class Neurone implements iNeurone
 		}
 	}
 
-        @Override
 	public void chargement(String chemin) // optionel
 	{
 		try(BufferedReader br = new BufferedReader(new FileReader(chemin)))
