@@ -1,9 +1,9 @@
-import java.io.*;
-import java.util.*;
-import javax.imageio.*;
 import java.awt.image.*;
+import java.io.*;
 import java.nio.file.*;
+import java.util.*;
 import java.util.stream.*;
+import javax.imageio.*;
 
 public class Image
 {
