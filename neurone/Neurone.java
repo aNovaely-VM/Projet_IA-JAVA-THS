@@ -43,7 +43,6 @@ public abstract class Neurone implements iNeurone
 	}
 
 	// Accesseur pour la valeur de sortie
-        @Override
 	public float sortie() {return etatInterne;}
 	
 	// Donne accès en lecture-écriture aux valeurs des poids synaptiques
@@ -55,7 +54,6 @@ public abstract class Neurone implements iNeurone
 	
 	// Calcule la valeur de sortie en fonction des entrées, des poids synaptiques,
 	// du biais et de la fonction d'activation
-		@Override
 	public void metAJour(final float[] entrees)
 	{
 		// On démarre en extrayant le biais
@@ -70,7 +68,6 @@ public abstract class Neurone implements iNeurone
 	}
 	
 	// Fonction d'apprentissage relative à la mse
-        @Override
 	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite)
 	{
 		double mse = 0.;
@@ -95,7 +92,6 @@ public abstract class Neurone implements iNeurone
 		while (mse > MSElimite);
 	}
 
-        @Override
 	public void sauvegarde(String chemin) // optionel
 	{
 		try
@@ -116,7 +112,6 @@ public abstract class Neurone implements iNeurone
 		}
 	}
 
-        @Override
 	public void chargement(String chemin) // optionel
 	{
 		try(BufferedReader br = new BufferedReader(new FileReader(chemin)))

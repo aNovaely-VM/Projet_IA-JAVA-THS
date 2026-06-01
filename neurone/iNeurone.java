@@ -13,4 +13,3 @@ public interface iNeurone
 	public void sauvegarde(String chemin); // optionel
 	public void chargement(String chemin); // optionel
 }
-

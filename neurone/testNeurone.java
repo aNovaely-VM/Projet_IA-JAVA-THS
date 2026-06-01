@@ -44,8 +44,4 @@ public class testNeurone
 			System.out.println("Entree "+i+" : "+n.sortie());
 		}
 	}
-
-    public static float getMSElimite() {
-        return MSElimite;
-    }
 }
