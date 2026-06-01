@@ -80,7 +80,7 @@ public class Image
 
 	public static void main (String[] args)
 	{
-		List<String> cheminsFichiers = listeFichiers("dataset_animaux/");
+		List<String> cheminsFichiers = listeFichiers("dataset_groupe_6/");
 		for (String chemin : cheminsFichiers) {
 			System.out.println(chemin);
 		}
