@@ -85,7 +85,7 @@ public class Image
 			System.out.println(chemin);
 		}
 
-		final String chemin = "dataset_animaux/train/dog/010552.jpg";
+		final String chemin = "dataset_groupe_6/train/dog/010552.jpg";
 		final int labelImage = chemin.indexOf("dog") != -1 ? LabelChien : LabelInconnu;
 		Image im1 = new Image(chemin, labelImage, false);
 		Image im2 = new Image(chemin, labelImage, true);
