@@ -1,15 +1,7 @@
-public interface iNeurone
-{
-	// Calcule la valeur de sortie en fonction des entrées, des poids synaptiques,
-	// du biais et de la fonction d'activation
-	public void metAJour(final float[] entrees);
-	
-	// Accesseur pour la valeur de sortie/d'activation du neurone
-	public float sortie();
+public interface iNeurone {
+	void metAJour(double[] entrees);
 
-	// Fonction d'apprentissage relative à la mse
-	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite);
+	double sortie();
 
-	public void sauvegarde(String chemin); // optionel
-	public void chargement(String chemin); // optionel
+	void apprentissage(double[][] entrees, double[] consigne, double MSElimite);
 }
