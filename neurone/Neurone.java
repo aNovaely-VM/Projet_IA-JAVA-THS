@@ -2,13 +2,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Random;
 
 public abstract class Neurone implements iNeurone
 {
 	// Coefficient de mise à jour des poids,
 	// commun (static) à tous les neurones
-	private static float eta = 0.001f;
+	private static float eta = 0.0001f;
 	// Accesseur en écriture seule, permettant de modifier
 	// eta pour tous les neurones pendant l'exécution
 	public static void fixeCoefApprentissage(final float nouvelEta) {eta = nouvelEta;}
@@ -68,25 +67,19 @@ public abstract class Neurone implements iNeurone
 		etatInterne = activation(somme);
 	}
 	
-
-	public static final int MAX_ITERATIONS = 1000; //pour éviter une boucle infinie de tentative d'amélioration du neurone
-
 	// Fonction d'apprentissage relative à la mse
 	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite)
 	{
 		double mse = 0.;
 		int iter = 0;
-    	final Random rng = new Random(); //aléatoire afin de ne pas faire les meme itérations et les meme types à la suite
-
 		do
 		{
 			mse = 0.;
 			for (int i = 0; i < entrees.length; ++i)
 			{
-				final int idx = rng.nextInt(entrees.length); //index aléatoire
-				final float[] entree = entrees[idx]; //i a été remplacé par idk, pour itéré aléatoirement
+				final float[] entree = entrees[i];
 				metAJour(entree);
-				final float delta = resultats[idx]-sortie(); //i a été remplacé par idk, pour itéré aléatoirement
+				final float delta = resultats[i]-sortie();
 				mse += delta * delta;
 				for (int j = 0; j < entree.length; ++j)
 					synapses()[j] += entree[j]*eta*delta;
@@ -96,7 +89,7 @@ public abstract class Neurone implements iNeurone
 			System.out.printf("Itération %d, mse:  %.6f\n", iter, mse);
 			iter += 1;
 		}
-		while (mse > MSElimite && iter < MAX_ITERATIONS);
+		while (mse > MSElimite);
 	}
 
 	public void sauvegarde(String chemin) // optionel

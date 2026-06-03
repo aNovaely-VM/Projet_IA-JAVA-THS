@@ -1,7 +1,7 @@
 public class testNeurone
 {
 	// Pourcentage d'erreur accepté dans l'apprentissage : 0.1 = 10%
-	final static float MSElimite = 0.0001f;
+	final static float MSElimite = 0.001f;
 	public static void main(String[] args)
 	{
 		// Tableau des entrées de la fonction ET (0 = faux, 1 = vrai)
@@ -11,8 +11,8 @@ public class testNeurone
 		final float[] resultats = {0, 0, 0, 1};
 		
 		// On crée un neurone taillé pour apprendre la fonction ET
-// 		final iNeurone n = new NeuroneHeavyside(entrees[0].length);
- 		final iNeurone n = new NeuroneSigmoide(entrees[0].length);
+ 		final iNeurone n = new NeuroneHeavyside(entrees[0].length);
+// 		final iNeurone n = new NeuroneSigmoide(entrees[0].length);
 //		final iNeurone n = new NeuroneReLU(entrees[0].length);
 		
 		System.out.println("Apprentissage…");
