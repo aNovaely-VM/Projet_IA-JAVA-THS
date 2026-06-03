@@ -1,2 +1,3 @@
-dataset_groupe_6/
 *.jpg
+Class/*.class
+Logs/*.txt
