@@ -17,7 +17,7 @@ public class testNeurone
 		
 		System.out.println("Apprentissage…");
 		// On lance l'apprentissage de la fonction ET sur ce neurone
-		n.apprentissage(entrees, resultats, MSElimite);
+		n.apprentissage(entrees, resultats, MSElimite, 1000 /* MAX_ITERATIONS a été rajoutée à la méthode afin d'éviter une boucle (quasi) infinie */);
 		
 		// On affiche les valeurs des synapses et du biais
 

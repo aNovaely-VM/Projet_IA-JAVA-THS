@@ -8,7 +8,7 @@ public interface iNeurone
 	public float sortie();
 
 	// Fonction d'apprentissage relative à la mse
-	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite);
+	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite, final int maxIterations /* MAX_ITERATIONS a été rajoutée à la méthode afin d'éviter une boucle (quasi) infinie */ );
 
 	public void sauvegarde(String chemin); // optionel
 	public void chargement(String chemin); // optionel

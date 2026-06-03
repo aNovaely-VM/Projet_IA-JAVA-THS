@@ -7,39 +7,32 @@ import javax.imageio.*;
 
 public class Image
 {
-	// Labels rendus public pour être utilisables depuis ClassificationAnimaux
-	static public int LabelChat    = 0;
-	static public int LabelChien   = 1;
-	static public int LabelWild    = 2;
-	static public int LabelInconnu = 3;
-
-	private int label   = -1;
+	static private int LabelChat = 0;
+	static private int LabelChien = 1;
+	static private int LabelWild = 2;
+	static private int LabelInconnu = 3;
+	private int label = -1;
 	private int largeur = 0;
 	private int hauteur = 0;
 	private int[] donnees = null; // image applatie en concaténant les lignes les unes après les autres
 
-	public int   label()   {return label;}
-	public int   largeur() {return largeur;}
-	public int   hauteur() {return hauteur;}
-	public int   taille()  {return donnees == null ? 0 : donnees.length;}
+	public int label() {return label;}
+	public int largeur() {return largeur;}
+	public int hauteur() {return hauteur;}
+	public int taille() {return donnees.length;} // nombre de pixels: hauteur*largeur ou 3*hauteur*largeur pour une image RGB
 	public int[] donnees() {return donnees;}
 
 	public boolean estEnNiveauxDeGris() {return taille() == largeur() * hauteur();}
 
 	public void afficheMetadonnees() {
-		String type = estEnNiveauxDeGris() ? "grayscale" : "couleurs";
+		String type = estEnNiveauxDeGris() ? "grayscale" : " couleurs";
 		System.out.printf("Image (%s): label=%d, largeur=%d, hauteur=%d, taille=%d\n",
 			type, label(), largeur(), hauteur(), taille());
 	}
 
-	/** Constructeur depuis un fichier image */
 	public Image(final String cheminImage, int label, boolean niveauxDeGris) {
 		try {
 			final BufferedImage img = ImageIO.read(new File(cheminImage));
-			if (img == null) {
-				System.err.printf("Image non lisible (format inconnu): %s\n", cheminImage);
-				return;
-			}
 			this.label = label;
 			largeur = img.getWidth(null);
 			hauteur = img.getHeight(null);
@@ -48,14 +41,15 @@ public class Image
 			for (int i = 0; i < hauteur; ++i) {
 				for (int j = 0; j < largeur; ++j) {
 					final long rgb = img.getRGB(j, i);
-					final int r = (int)((rgb>>16)&255);
-					final int g = (int)((rgb>>8)&255);
-					final int b = (int)((rgb)&255);
+					final int r = (int)((rgb>>16)&255);	// Isoler la composante rouge
+					final int g = (int)((rgb>>8)&255);	// Isoler la composante verte
+					final int b = (int)((rgb)&255);		// Isoler la composante bleue
 					final int index = i * largeur + j;
 					if (niveauxDeGris) {
-						final float gris = 0.2125f * r + 0.7154f * g + 0.0721f * b;
+						final float gris = 0.2125f * r + 0.7154f * g + 0.0721f * b; // RGB -> niveaux de gris
 						donnees[index] = (int) Math.max(0, Math.min(255, gris));
-					} else {
+					}
+					else {
 						donnees[3*index+0] = r;
 						donnees[3*index+1] = g;
 						donnees[3*index+2] = b;
@@ -69,38 +63,30 @@ public class Image
 		}
 	}
 
-	/**
-	 * Constructeur interne utilisé par ClassificationAnimaux.souséchantillonner()
-	 * pour créer une image déjà traitée (données fournies directement).
-	 */
-	public Image(int label, int largeur, int hauteur, int[] donnees) {
-		this.label   = label;
-		this.largeur = largeur;
-		this.hauteur = hauteur;
-		this.donnees = donnees;
-	}
-
-	/** Liste récursivement tous les fichiers d'un répertoire */
 	public static List<String> listeFichiers(String repertoire) {
 		List<String> cheminsFichiers = null;
 		try {
-			cheminsFichiers = Files.walk(Paths.get(repertoire))
-				.filter(Files::isRegularFile)
-				.map(Path::toAbsolutePath)
-				.map(Path::toString)
-				.collect(Collectors.toList());
+			// La syntaxe qui suit enchaîne plusieurs méthodes d'affilée
+			cheminsFichiers = Files.walk(Paths.get(repertoire))	// Récupère les chemins
+				.filter(Files::isRegularFile)					// filtre uniquement les fichiers
+				.map(Path::toAbsolutePath)						// convertit le chemin en chemin absolu
+				.map(Path::toString)							// convertit le chemin en chaine de caractères
+				.collect(Collectors.toList());					// crée une collection à partir de ces chaînes
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return cheminsFichiers;
 	}
 
-	/** Main de test — affiche les métadonnées d'une image */
-	public static void main(String[] args)
+	public static void main (String[] args)
 	{
-		// Test rapide sur une seule image
+		List<String> cheminsFichiers = listeFichiers("dataset_groupe_6/");
+		for (String chemin : cheminsFichiers) {
+			System.out.println(chemin);
+		}
+
 		final String chemin = "dataset_groupe_6/train/dog/010552.jpg";
-		final int labelImage = chemin.contains("dog") ? LabelChien : LabelInconnu;
+		final int labelImage = chemin.indexOf("dog") != -1 ? LabelChien : LabelInconnu;
 		Image im1 = new Image(chemin, labelImage, false);
 		Image im2 = new Image(chemin, labelImage, true);
 		im1.afficheMetadonnees();

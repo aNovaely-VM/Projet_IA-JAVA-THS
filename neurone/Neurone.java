@@ -43,6 +43,7 @@ public abstract class Neurone implements iNeurone
 	}
 
 	// Accesseur pour la valeur de sortie
+        @Override
 	public float sortie() {return etatInterne;}
 	
 	// Donne accès en lecture-écriture aux valeurs des poids synaptiques
@@ -54,6 +55,7 @@ public abstract class Neurone implements iNeurone
 	
 	// Calcule la valeur de sortie en fonction des entrées, des poids synaptiques,
 	// du biais et de la fonction d'activation
+        @Override
 	public void metAJour(final float[] entrees)
 	{
 		// On démarre en extrayant le biais
@@ -68,7 +70,8 @@ public abstract class Neurone implements iNeurone
 	}
 	
 	// Fonction d'apprentissage relative à la mse
-	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite)
+        @Override
+	public void apprentissage(final float[][] entrees, final float[] resultats, final float MSElimite, final int maxIterations /* MAX_ITERATIONS a été rajoutée à la méthode afin d'éviter une boucle (quasi) infinie */)
 	{
 		double mse = 0.;
 		int iter = 0;
@@ -89,9 +92,10 @@ public abstract class Neurone implements iNeurone
 			System.out.printf("Itération %d, mse:  %.6f\n", iter, mse);
 			iter += 1;
 		}
-		while (mse > MSElimite);
+		while (mse >= MSElimite && iter <= maxIterations /* MAX_ITERATIONS a été rajoutée à la méthode afin d'éviter une boucle (quasi) infinie */);
 	}
 
+        @Override
 	public void sauvegarde(String chemin) // optionel
 	{
 		try
@@ -112,6 +116,7 @@ public abstract class Neurone implements iNeurone
 		}
 	}
 
+        @Override
 	public void chargement(String chemin) // optionel
 	{
 		try(BufferedReader br = new BufferedReader(new FileReader(chemin)))
