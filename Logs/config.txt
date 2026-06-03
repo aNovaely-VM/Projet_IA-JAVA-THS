@@ -1,5 +1,0 @@
-typeCouleurActif=GRI
-typeNeuroneActif=sigmoide
-typeTraitementActif=HOG
-modeMonoNeuroneActif=false
-modeShuffleActif=true
