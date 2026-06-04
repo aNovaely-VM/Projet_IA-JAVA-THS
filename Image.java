@@ -14,11 +14,13 @@ public class Image
 	private int label = -1;
 	private int largeur = 0;
 	private int hauteur = 0;
+	private String cheminFichier; // Chemin du fichier ajouté afin d'accéder
 	private int[] donnees = null; // image applatie en concaténant les lignes les unes après les autres
 
 	public int label() {return label;}
 	public int largeur() {return largeur;}
 	public int hauteur() {return hauteur;}
+	public String chemin() {return cheminFichier;} // Chemin du fichier ajouté afin d'accéder
 	public int taille() {return donnees.length;} // nombre de pixels: hauteur*largeur ou 3*hauteur*largeur pour une image RGB
 	public int[] donnees() {return donnees;}
 
@@ -32,6 +34,7 @@ public class Image
 
 	public Image(final String cheminImage, int label, boolean niveauxDeGris) {
 		try {
+			this.cheminFichier = cheminImage; // Chemin du fichier ajouté afin d'accéder
 			final BufferedImage img = ImageIO.read(new File(cheminImage));
 			this.label = label;
 			largeur = img.getWidth(null);
