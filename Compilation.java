@@ -16,6 +16,10 @@ public class Compilation
     static final String DATASET_TEST  = "dataset_groupe_6/test/";
     static final String DATASET_SORT  = "dataset_groupe_6/naming/to_sort/"; 
 
+    // Dossiers de sortie du tri (binaire ou multiple)
+    static final String DATASET_SORT_OUT_BINAIRE  = "dataset_groupe_6/naming/binaire/";
+    static final String DATASET_SORT_OUT_MULTIPLE = "dataset_groupe_6/naming/multiple/";
+
     // Classes à reconnaître et leurs labels associés
     static final String[] CLASSES = {"cat", "dog", "wild"};
     static final int[]    LABELS  = {0,      1,     2};
@@ -29,24 +33,42 @@ public class Compilation
     static final String[] OPTIONS_TRAITEMENT = {"simple", "mirror", "histogramme (Oblige COL ou TSL)", "HOG (Oblige GRI)"};
     static final String[] OPTIONS_ARCHITECTURE = {"1 Neurone (Cat ou non - Binaire)", "3 Neurones (Cat, Dog, Wild - Multiclasse)"};
     static final String[] OPTIONS_ORDRE = {"Ordre séquentiel (Linéaire)", "Mélange aléatoire (Shuffle)"};
+    static final String[] OPTIONS_TYPE_LOGS = {"Binaire (1 Neurone)", "Multiple (3 Neurones)"};
+    static final String[] OPTIONS_OUI_NON   = {"Oui", "Non"};
 
     // Choix actifs (sélectionnés par l'utilisateur au runtime)
     static String typeCouleurActif = "GRI";       
     static String typeNeuroneActif = "sigmoide";  
     static String typeTraitementActif = "simple"; 
     static boolean modeMonoNeuroneActif = false;  
-    static boolean modeShuffleActif = false; 
+    static boolean modeShuffleActif = false;
+    static boolean modeNormalisationActif = false;
 
     // Seuil de convergence MSE, Taux d'apprentissage et Limite d'itérations
     static final float MSE_LIMITE = 0.01f;
     static final float ETA = 0.0001f;
     static final int MAX_ITERATIONS = 200; 
 
-    // Dossier de sauvegarde des logs et poids
-    static final String SAVE_DIR = "Logs/";
+    // Dossiers de sauvegarde des logs et poids (résolu dynamiquement selon le mode)
+    static final String SAVE_DIR_BINAIRE  = "Logs/binaire/";
+    static final String SAVE_DIR_MULTIPLE = "Logs/multiple/";
 
     // SYSTEME DE CACHE POUR LES IMAGES TRANSFORMEES
     private static final Map<Integer, float[]> cacheTransformations = new HashMap<>();
+
+    // =========================================================
+    //  HELPERS : chemins dynamiques
+    // =========================================================
+
+    /** Retourne le dossier de logs actif selon le mode courant. */
+    static String saveDir() {
+        return modeMonoNeuroneActif ? SAVE_DIR_BINAIRE : SAVE_DIR_MULTIPLE;
+    }
+
+    /** Retourne le dossier de sortie du tri selon le mode courant. */
+    static String sortOutDir() {
+        return modeMonoNeuroneActif ? DATASET_SORT_OUT_BINAIRE : DATASET_SORT_OUT_MULTIPLE;
+    }
 
     // =========================================================
     //  MAIN
@@ -59,6 +81,9 @@ public class Compilation
 
         Scanner sc = new Scanner(System.in);
 
+        // Boucle principale : on reste dans le menu jusqu'à ce que l'utilisateur choisisse 7
+        while (true) {
+
         // --- 1. DEMANDE D'ABORD L'ACTION À EFFECTUER ---
         System.out.println("Que voulez-vous faire ?");
         System.out.println("  1) Entraîner puis évaluer (Train + Test)");
@@ -66,9 +91,16 @@ public class Compilation
         System.out.println("  3) Entraîner uniquement (Train only)");
         System.out.println("  4) Évaluer uniquement (Test only ─ ! Nécessite un modèle déjà entraîné ! )");
         System.out.println("  5) Trier uniquement (Sort only ─ ! Nécessite un modèle déjà entraîné ! )");
-        System.out.print("\nVotre choix [1-5] : ");
+        System.out.println("  6) Nettoyer les sorties (Clear ─ supprime les images triées dans naming/binaire et naming/multiple)");
+        System.out.println("  7) Quitter le programme");
+        System.out.print("\nVotre choix [1-7] : ");
         String choix = sc.nextLine().trim();
         System.out.println();
+
+        if (choix.equals("7")) {
+            System.out.println("Au revoir !");
+            break;
+        }
 
         boolean necessiteEntrainement = choix.equals("1") || choix.equals("2") || choix.equals("3");
 
@@ -99,30 +131,38 @@ public class Compilation
             String choixOrdre = menuChoix(sc, "Choisissez l'ordre des images :", OPTIONS_ORDRE);
             modeShuffleActif = choixOrdre.contains("Shuffle");
 
+            String choixNorm = menuChoix(sc, "Activer la normalisation des vecteurs d'entrée ?", OPTIONS_OUI_NON);
+            modeNormalisationActif = choixNorm.equals("Oui");
+
             cacheTransformations.clear();
             afficherConfig();
-        } else {
-            // Mode évaluation/tri direct : Chargement automatique des logs de configuration passés
+        } else if (choix.equals("4") || choix.equals("5")) {
+            // Mode évaluation/tri direct : l'utilisateur choisit quel type de logs utiliser
+            String choixLogs = menuChoix(sc, "Quel type de modèle voulez-vous utiliser ?", OPTIONS_TYPE_LOGS);
+            modeMonoNeuroneActif = choixLogs.startsWith("Binaire");
+
+            // --- SÉCURITÉ : vérification de la présence de la config avant de continuer ---
+            File configFile = new File(saveDir() + "config.txt");
+            if (!configFile.exists()) {
+                System.err.println("╔══════════════════════════════════════════════════════════╗");
+                System.err.println("║  ERREUR : Aucune configuration trouvée dans " + saveDir());
+                System.err.println("║  Impossible de lancer cette action sans modèle entraîné.");
+                System.err.println("║  → Lancez d'abord un entraînement (options 1, 2 ou 3).  ");
+                System.err.println("╚══════════════════════════════════════════════════════════╝");
+                continue;
+            }
+
             try {
                 chargerConfiguration();
-                System.out.println("[INFO] Logs de configuration passée chargés avec succès.");
+                System.out.println("[INFO] Logs de configuration chargés depuis : " + saveDir());
             } catch (IOException e) {
-                System.err.println("[ATTENTION] Aucun fichier de configuration globale trouvé dans " + SAVE_DIR + "config.txt");
-                System.err.println("[ATTENTION] Tentative de détection adaptative sommaire...");
-                
-                File modCat = new File(SAVE_DIR + "neurone_cat.txt");
-                File modDog = new File(SAVE_DIR + "neurone_dog.txt");
-                File modWild = new File(SAVE_DIR + "neurone_wild.txt");
-                
-                if (modCat.exists() && modDog.exists() && modWild.exists()) {
-                    modeMonoNeuroneActif = false;
-                    System.out.println("[INFO] Modèles multiclasses détectés (cat, dog, wild).");
-                } else {
-                    modeMonoNeuroneActif = true;
-                    System.out.println("[INFO] Modèles multiclasses manquants. Utilisation par défaut du neurone binaire.");
-                }
+                System.err.println("[ERREUR] Lecture du fichier de configuration échouée : " + e.getMessage());
+                System.err.println("→ Relancez un entraînement pour régénérer la configuration.");
+                continue;
             }
             afficherConfig();
+        } else {
+            // option 6 (clear) ou choix invalide : pas de config à charger
         }
 
         // --- 3. EXECUTION DE L'ACTION ---
@@ -132,8 +172,13 @@ public class Compilation
             case "3" -> train();
             case "4" -> test();
             case "5" -> sort();
-            default  -> System.out.println("Choix invalide. Fin du programme.");
+            case "6" -> clear(sc);
+            default  -> System.out.println("Choix invalide.\n");
         }
+
+        System.out.println(); // ligne de séparation avant le prochain tour
+
+        } // fin while
     }
 
     private static String menuChoix(Scanner sc, String titre, String[] options) {
@@ -162,6 +207,8 @@ public class Compilation
         System.out.printf("│  Dataset train    : %-34s │\n", DATASET_TRAIN);
         System.out.printf("│  Dataset test     : %-34s │\n", DATASET_TEST);
         System.out.printf("│  Dataset à trier  : %-34s │\n", DATASET_SORT);
+        System.out.printf("│  Sortie du tri    : %-34s │\n", sortOutDir());
+        System.out.printf("│  Dossier logs     : %-34s │\n", saveDir());
         System.out.printf("│  Architecture     : %-34s │\n", (modeMonoNeuroneActif ? "1 Neurone (Cat / Non-Cat)" : "3 Neurones (Collaboratif)"));
         System.out.printf("│  Neurone choisi   : %-34s │\n", typeNeuroneActif);
         System.out.printf("│  Mode image       : %-34s │\n", typeCouleurActif);
@@ -170,6 +217,7 @@ public class Compilation
         System.out.printf("│  MSE cible        : %-34s │\n", MSE_LIMITE);
         System.out.printf("│  Max Itérations   : %-34s │\n", MAX_ITERATIONS);
         System.out.printf("│  Pas d'app. (Eta) : %-34s │\n", ETA);
+        System.out.printf("│  Normalisation    : %-34s │\n", (modeNormalisationActif ? "Activée" : "Désactivée"));
         System.out.println("└────────────────────────────────────────────────────────┘\n");
     }
 
@@ -177,22 +225,23 @@ public class Compilation
     //  SAUVEGARDE ET CHARGEMENT DE LA CONFIGURATION
     // =========================================================
     private static void sauvegarderConfiguration() throws IOException {
-        File dir = new File(SAVE_DIR);
+        File dir = new File(saveDir());
         if (!dir.exists()) dir.mkdirs();
         
-        try (PrintWriter pw = new PrintWriter(new FileWriter(SAVE_DIR + "config.txt"))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter(saveDir() + "config.txt"))) {
             pw.println("typeCouleurActif=" + typeCouleurActif);
             pw.println("typeNeuroneActif=" + typeNeuroneActif);
             pw.println("typeTraitementActif=" + typeTraitementActif);
             pw.println("modeMonoNeuroneActif=" + modeMonoNeuroneActif);
             pw.println("modeShuffleActif=" + modeShuffleActif);
+            pw.println("modeNormalisationActif=" + modeNormalisationActif);
         }
     }
 
     private static void chargerConfiguration() throws IOException {
-        File configFile = new File(SAVE_DIR + "config.txt");
+        File configFile = new File(saveDir() + "config.txt");
         if (!configFile.exists()) {
-            throw new FileNotFoundException("Fichier de configuration absent.");
+            throw new FileNotFoundException("Fichier de configuration absent : " + saveDir() + "config.txt");
         }
         
         try (BufferedReader br = new BufferedReader(new FileReader(configFile))) {
@@ -203,11 +252,12 @@ public class Compilation
                     String cle = parts[0].trim();
                     String valeur = parts[1].trim();
                     switch (cle) {
-                        case "typeCouleurActif" -> typeCouleurActif = valeur;
-                        case "typeNeuroneActif" -> typeNeuroneActif = valeur;
-                        case "typeTraitementActif" -> typeTraitementActif = valeur;
+                        case "typeCouleurActif"     -> typeCouleurActif = valeur;
+                        case "typeNeuroneActif"     -> typeNeuroneActif = valeur;
+                        case "typeTraitementActif"  -> typeTraitementActif = valeur;
                         case "modeMonoNeuroneActif" -> modeMonoNeuroneActif = Boolean.parseBoolean(valeur);
-                        case "modeShuffleActif" -> modeShuffleActif = Boolean.parseBoolean(valeur);
+                        case "modeShuffleActif"     -> modeShuffleActif = Boolean.parseBoolean(valeur);
+                        case "modeNormalisationActif" -> modeNormalisationActif = Boolean.parseBoolean(valeur);
                     }
                 }
             }
@@ -282,9 +332,13 @@ public class Compilation
         boolean estMulticomposante = typeCouleurActif.equals("COL") || typeCouleurActif.equals("TSL");
         
         switch (typeTraitementActif.toLowerCase()) {
-            case "mirror" -> donneesModifiees = appliquerEffetMiroir(donneesModifiees, largeur, hauteur, estMulticomposante);
+            case "mirror"      -> donneesModifiees = appliquerEffetMiroir(donneesModifiees, largeur, hauteur, estMulticomposante);
             case "histogramme" -> donneesModifiees = appliquerEgalisationHistogramme(donneesModifiees, estMulticomposante);
-            case "hog" -> donneesModifiees = calculerHOG(donneesModifiees, largeur, hauteur, estMulticomposante);
+            case "hog"         -> donneesModifiees = calculerHOG(donneesModifiees, largeur, hauteur, estMulticomposante);
+        }
+
+        if (modeNormalisationActif) {
+            donneesModifiees = normaliserVecteur(donneesModifiees);
         }
 
         return donneesModifiees;
@@ -466,6 +520,16 @@ public class Compilation
         return vecteurHOG; 
     }
 
+    private static float[] normaliserVecteur(float[] v) {
+        double norme = 0.0;
+        for (float val : v) norme += val * val;
+        norme = Math.sqrt(norme);
+        if (norme < 1e-8) return v; // vecteur nul, rien à faire
+        float[] normalise = new float[v.length];
+        for (int i = 0; i < v.length; i++) normalise[i] = (float) (v[i] / norme);
+        return normalise;
+    }
+
     static List<Image> chargerImages(String baseDir) 
     {
         List<Image> liste = new ArrayList<>();
@@ -571,17 +635,17 @@ public class Compilation
         double dureeTotaleSec = (tempsFinTotal - tempsDebutTotal) / 1000.0;
         System.out.printf("\n Fin du processus. Itérations exécutées : %d | Durée globale : %.2f s.\n", iter, dureeTotaleSec);
 
-        // Sauvegarde de la configuration globale
+        // Sauvegarde dans le bon sous-dossier (binaire ou multiple)
         sauvegarderConfiguration();
 
         if (modeMonoNeuroneActif) {
-            coucheNeurones[0].sauvegarde(SAVE_DIR + "neurone_binaire_cat.txt");
+            coucheNeurones[0].sauvegarde(saveDir() + "neurone_binaire_cat.txt");
         } else {
             for (int k = 0; k < CLASSES.length; k++) {
-                coucheNeurones[k].sauvegarde(SAVE_DIR + "neurone_" + CLASSES[k] + ".txt");
+                coucheNeurones[k].sauvegarde(saveDir() + "neurone_" + CLASSES[k] + ".txt");
             }
         }
-        System.out.println(" Configuration, poids et biais structurels sauvés dans : " + SAVE_DIR);
+        System.out.println(" Configuration, poids et biais structurels sauvés dans : " + saveDir());
         
         System.out.println("\n Performances instantanées mesurées sur le Dataset d'Entraînement :");
         afficherMatriceEtCalculs(images, entrees, coucheNeurones);
@@ -607,15 +671,15 @@ public class Compilation
         try {
             if (modeMonoNeuroneActif) {
                 neurones[0] = creerNeurone(nbEntrees);
-                neurones[0].chargement(SAVE_DIR + "neurone_binaire_cat.txt");
+                neurones[0].chargement(saveDir() + "neurone_binaire_cat.txt");
             } else {
                 for (int k = 0; k < CLASSES.length; k++) {
                     neurones[k] = creerNeurone(nbEntrees);
-                    neurones[k].chargement(SAVE_DIR + "neurone_" + CLASSES[k] + ".txt");
+                    neurones[k].chargement(saveDir() + "neurone_" + CLASSES[k] + ".txt");
                 }
             }
         } catch (Exception e) {
-            System.err.println("\n[ERREUR CRITIQUE] Impossible de charger les poids.");
+            System.err.println("\n[ERREUR CRITIQUE] Impossible de charger les poids depuis " + saveDir());
             System.err.println("Détail de l'erreur : " + e.getMessage());
             System.err.println("-> Assurez-vous d'avoir lancé un ENTRAÎNEMENT complet avec la MÊME configuration (Couleur/Traitement) avant d'évaluer.\n");
             return; 
@@ -738,12 +802,14 @@ public class Compilation
             return;
         }
 
-        System.out.println("  Nettoyage des anciens dossiers de tri...");
+        // Nettoyage des anciens dossiers de tri dans le sous-dossier de sortie approprié
+        String outDir = sortOutDir();
+        System.out.println("  Nettoyage des anciens dossiers de tri dans : " + outDir);
         List<String> dossiersANettoyer = new ArrayList<>(Arrays.asList(CLASSES));
         if (modeMonoNeuroneActif) dossiersANettoyer.add("non_cat");
 
         for (String cl : dossiersANettoyer) {
-            File folder = new File(DATASET_SORT + cl);
+            File folder = new File(outDir + cl);
             if (folder.exists() && folder.isDirectory()) {
                 File[] anciensFichiers = folder.listFiles();
                 if (anciensFichiers != null) {
@@ -754,7 +820,8 @@ public class Compilation
             }
         }
 
-        System.out.printf("  %d images détectées dans 'to_sort/'. Début du tri...\n", imagesATrier.size());
+        System.out.printf("  %d images détectées dans 'to_sort/'. Début du tri vers '%s'...\n",
+            imagesATrier.size(), outDir);
 
         boolean estGris = typeCouleurActif.equals("GRI");
         Image imgTemoin = new Image(imagesATrier.get(0), -1, estGris);
@@ -766,15 +833,15 @@ public class Compilation
         try {
             if (modeMonoNeuroneActif) {
                 neurones[0] = creerNeurone(nbEntrees);
-                neurones[0].chargement(SAVE_DIR + "neurone_binaire_cat.txt");
+                neurones[0].chargement(saveDir() + "neurone_binaire_cat.txt");
             } else {
                 for (int k = 0; k < CLASSES.length; k++) {
                     neurones[k] = creerNeurone(nbEntrees);
-                    neurones[k].chargement(SAVE_DIR + "neurone_" + CLASSES[k] + ".txt");
+                    neurones[k].chargement(saveDir() + "neurone_" + CLASSES[k] + ".txt");
                 }
             }
         } catch (Exception e) {
-            System.err.println(" Erreur critique : Fichier(s) de poids manquant(s). Ré-entraînez le réseau.");
+            System.err.println(" Erreur critique : Fichier(s) de poids manquant(s) dans " + saveDir() + ". Ré-entraînez le réseau.");
             return;
         }
 
@@ -794,10 +861,10 @@ public class Compilation
                 boolean estCat = (score >= 0.5f || (typeNeuroneActif.equalsIgnoreCase("heavyside") && score > 0f));
                 
                 if (estCat) {
-                    cible = Paths.get(DATASET_SORT + "cat/" + nomFichier);
+                    cible = Paths.get(outDir + "cat/" + nomFichier);
                     dispatch[0]++;
                 } else {
-                    cible = Paths.get(DATASET_SORT + "non_cat/" + nomFichier);
+                    cible = Paths.get(outDir + "non_cat/" + nomFichier);
                     dispatch[3]++; 
                 }
             } else {
@@ -810,7 +877,7 @@ public class Compilation
                         gagnant = k;
                     }
                 }
-                cible = Paths.get(DATASET_SORT + CLASSES[gagnant] + "/" + nomFichier);
+                cible = Paths.get(outDir + CLASSES[gagnant] + "/" + nomFichier);
                 dispatch[gagnant]++;
             }
 
@@ -822,12 +889,61 @@ public class Compilation
 
         System.out.println("\n Tri fini avec succès ! Synthèse du flux filtré :");
         if (modeMonoNeuroneActif) {
-            System.out.printf("  └─> [cat]     : %d images copiées.\n", dispatch[0]);
-            System.out.printf("  └─> [non_cat] : %d images copiées.\n", dispatch[3]);
+            System.out.printf("  └─> [cat]     : %d images copiées dans '%s'.\n", dispatch[0], outDir + "cat/");
+            System.out.printf("  └─> [non_cat] : %d images copiées dans '%s'.\n", dispatch[3], outDir + "non_cat/");
         } else {
             for (int k = 0; k < CLASSES.length; k++) {
-                System.out.printf("  └─> [%-5s]   : %d images copiées.\n", CLASSES[k], dispatch[k]);
+                System.out.printf("  └─> [%-5s]   : %d images copiées dans '%s'.\n", CLASSES[k], dispatch[k], outDir + CLASSES[k] + "/");
             }
         }
+    }
+
+    // =========================================================
+    //  CLEAR (NETTOYAGE DES SORTIES DE TRI)
+    // =========================================================
+    static void clear(Scanner sc) 
+    {
+        System.out.println("════════════════════════════════════════════════════════");
+        System.out.println(" NETTOYAGE DES SORTIES DE TRI (CLEAR)");
+        System.out.println("════════════════════════════════════════════════════════");
+
+        String[] optionsClear = {
+            "Binaire uniquement (" + DATASET_SORT_OUT_BINAIRE + ")",
+            "Multiple uniquement (" + DATASET_SORT_OUT_MULTIPLE + ")",
+            "Les deux (Binaire + Multiple)"
+        };
+        String choixClear = menuChoix(sc, "Que voulez-vous nettoyer ?", optionsClear);
+
+        List<String> dirsANettoyer = new ArrayList<>();
+        if (choixClear.startsWith("Binaire"))  dirsANettoyer.add(DATASET_SORT_OUT_BINAIRE);
+        if (choixClear.startsWith("Multiple")) dirsANettoyer.add(DATASET_SORT_OUT_MULTIPLE);
+        if (choixClear.startsWith("Les deux")) {
+            dirsANettoyer.add(DATASET_SORT_OUT_BINAIRE);
+            dirsANettoyer.add(DATASET_SORT_OUT_MULTIPLE);
+        }
+
+        // Tous les sous-dossiers possibles (classes + non_cat)
+        List<String> sousDossiers = new ArrayList<>(Arrays.asList(CLASSES));
+        sousDossiers.add("non_cat");
+
+        int totalSupprime = 0;
+        for (String dir : dirsANettoyer) {
+            System.out.println("\n  Nettoyage de : " + dir);
+            for (String sd : sousDossiers) {
+                File dossier = new File(dir + sd);
+                if (!dossier.exists() || !dossier.isDirectory()) continue;
+                File[] fichiers = dossier.listFiles();
+                int count = 0;
+                if (fichiers != null) {
+                    for (File f : fichiers) {
+                        if (f.isFile()) { f.delete(); count++; }
+                    }
+                }
+                totalSupprime += count;
+                System.out.printf("    └─> [%-8s] : %d fichier(s) supprimé(s)\n", sd, count);
+            }
+        }
+
+        System.out.printf("\n Total supprimé : %d fichier(s). Nettoyage terminé.\n", totalSupprime);
     }
 }

@@ -1,0 +1,11 @@
+dataset_groupe_6/train/cat/.gitkeep
+dataset_groupe_6/train/dog/.gitkeep
+dataset_groupe_6/train/wild/.gitkeep
+dataset_groupe_6/test/cat/.gitkeep
+dataset_groupe_6/test/dog/.gitkeep
+dataset_groupe_6/test/wild/.gitkeep
+dataset_groupe_6/naming/to_sort/.gitkeep
+dataset_groupe_6/naming/binaire/.gitkeep
+dataset_groupe_6/naming/multiple/.gitkeep
+Logs/binaire/.gitkeep
+Logs/multiple/.gitkeep
